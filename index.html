@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>深径：余烬</title>
+    <title>迷你地牢 (V1.1)</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://rsms.me/">
     <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
@@ -52,7 +52,6 @@
             position: relative;
         }
         
-        /* 游戏主容器内的绝对定位层，用于动画 */
         #animation-layer {
             position: absolute;
             top: 0;
@@ -61,7 +60,7 @@
             height: 100%;
             pointer-events: none;
             overflow: hidden;
-            z-index: 40; /* 必须在UI下面，但在背景之上 */
+            z-index: 40; 
         }
 
         /* 隐藏的屏幕 */
@@ -76,33 +75,49 @@
             opacity: 0;
             transition: opacity 0.2s ease;
             pointer-events: none;
-            z-index: 1; /* 保证屏幕在动画层之上 */
+            z-index: 1; 
         }
         .screen.active {
             display: flex;
             opacity: 1;
             position: relative;
             pointer-events: auto;
-            z-index: 2; /* 激活的屏幕在最前 */
+            z-index: 2; 
         }
         
         /* 模态框 (用于锻造) */
         .modal-screen {
             position: absolute;
             z-index: 10;
-            background-color: rgba(0,0,0,0.5); /* 半透明遮罩 */
+            background-color: rgba(0,0,0,0.5); 
             backdrop-filter: blur(4px);
-            display: flex; /* 默认隐藏 */
+            display: flex; 
         }
         .modal-screen.active {
-            display: flex; /* 激活时显示 */
+            display: flex; 
             opacity: 1;
             pointer-events: auto;
-            z-index: 11; /* 模态框在所有之上 */
+            z-index: 11; 
         }
         .modal-content {
             background-color: var(--color-bg);
             border: 1px solid var(--color-border);
+        }
+        
+        /* V1.0: 主内容区域 (用于切换) */
+        #main-content-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden; /* 确保内容区不会溢出 */
+        }
+        #combat-container, #event-container, #reward-container {
+            display: none; /* JS控制显示/隐藏 */
+            flex-grow: 1;
+            flex-direction: column;
+        }
+        #event-container, #reward-container {
+            justify-content: center;
         }
 
         /* 卡牌样式 */
@@ -112,16 +127,27 @@
             background-color: var(--color-surface);
             border: 2px solid var(--color-border);
             border-radius: 8px;
-            padding: 8px;
+            padding: 6px; 
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-            transition: transform 0.2s ease, box-shadow 0.2s ease, margin 0.2s ease; /* V1.14: 增加 margin 过渡 */
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
             cursor: pointer;
             flex-shrink: 0;
             position: relative; 
         }
+        .card.rarity-common { border-color: var(--color-border); }
+        .card.rarity-rare { 
+            border-color: var(--color-yellow); 
+            box-shadow: 0 0 10px rgba(234, 179, 8, 0.3);
+        }
+        .card.upgraded {
+            border-color: var(--color-green);
+            box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
+        }
+        .card.curse { border-color: var(--color-purple); }
+
         .card-cost {
             width: 24px;
             height: 24px;
@@ -141,15 +167,16 @@
             color: var(--color-text);
         }
         .card-name {
-            font-size: 0.9rem;
+            font-size: 0.85rem; 
             font-weight: 600;
             text-align: center;
         }
-        .card-name.upgraded {
-            color: var(--color-green);
-        }
+        .card-name.rarity-rare { color: var(--color-yellow); }
+        .card-name.upgraded { color: var(--color-green); }
+
         .card-desc {
-            font-size: 0.75rem;
+            font-size: 0.7rem; 
+            line-height: 1.3; 
             text-align: center;
             color: var(--color-text-dim);
         }
@@ -158,57 +185,37 @@
             font-weight: 600;
             cursor: help;
         }
-        .card.upgraded {
-            border-color: var(--color-green);
-            box-shadow: 0 0 10px rgba(34, 197, 94, 0.3);
-        }
         .card.exhaust .card-desc::after {
             content: " (消耗)";
             font-style: italic;
             color: var(--color-text-dim);
         }
-        .card.curse {
-            border-color: var(--color-purple);
-        }
-        
-        /* V1.14: 手牌区域重构 */
+
+        /* 手牌区域 (Layout V2) */
         #hand-area {
-            height: 160px; /* 增加一点高度 */
-            background-color: var(--color-bg); /* 改为更深的背景 */
+            height: 140px; 
+            background-color: var(--color-bg);
             border-top: 2px solid var(--color-border);
-            padding: 10px 40px; /* V1.14: 增加左右内边距，确保滚动到边缘 */
+            padding: 10px; 
             display: flex;
-            justify-content: center;
+            justify-content: flex-start; 
             align-items: center;
-            overflow-x: auto; /* 允许水平滚动 */
+            overflow-x: auto; 
             position: relative;
+            flex-shrink: 0; /* V1.0: 防止手牌区被压缩 */
         }
         .hand-card {
-            margin-left: -30px; /* V1.14: 负外边距实现卡牌重叠 */
+            margin-right: 8px; 
         }
-        .hand-card:first-child {
-            margin-left: 0; /* 第一张卡没有负外边距 */
-        }
-        /* V1.14: 悬停/选中时，移除负外边距，使其“弹出” */
         .hand-card:hover {
             transform: translateY(-10px) scale(1.05);
-            margin-left: 0;
-            margin-right: -30px; /* 补偿右侧卡牌 */
             z-index: 10;
-        }
-        .hand-card:hover + .hand-card {
-            margin-left: 0; /* 悬停时，右侧的卡牌也展开 */
         }
         .hand-card.selected {
             transform: translateY(-20px) scale(1.1);
             border-color: var(--color-accent);
             box-shadow: 0 0 20px 5px rgba(34, 211, 238, 0.3);
-            margin-left: 0;
-            margin-right: -30px;
             z-index: 20;
-        }
-        .hand-card.selected + .hand-card {
-            margin-left: 0;
         }
         
         .hand-card.playable {
@@ -218,32 +225,35 @@
             opacity: 0.6;
             background-color: #333;
         }
-        /* V1.14: 抽卡动画的起始状态 */
         .hand-card.drawing {
             opacity: 0;
-            position: absolute; /* V1.14: 动画时脱离布局 */
+            position: absolute;
             z-index: 30;
             transition: all 0.4s ease-out;
         }
 
-        /* 卡牌奖励 UI */
+        /* 卡牌奖励 UI (Reward Screen Rework) */
         #card-reward-options {
             display: flex;
             justify-content: center;
             align-items: center;
             padding-top: 20px; 
+            gap: 10px; 
+            flex-grow: 1; /* V1.0: 填充空间 */
         }
         .reward-card {
             transition: all 0.2s ease-out;
         }
         .reward-card:hover {
-            transform: scale(1.1) translateY(-16px) !important; 
-            z-index: 20 !important;
+            transform: scale(1.05); 
+            z-index: 20;
             border-color: var(--color-yellow);
         }
-        .reward-card:nth-child(1) { transform: rotate(-6deg); z-index: 8; margin-left: -10px; } 
-        .reward-card:nth-child(2) { transform: scale(1.05); z-index: 10; }
-        .reward-card:nth-child(3) { transform: rotate(6deg); z-index: 9; margin-left: -10px; } 
+        .reward-card.selected-reward {
+            transform: scale(1.05);
+            border-color: var(--color-yellow);
+            box-shadow: 0 0 15px rgba(234, 179, 8, 0.4);
+        }
 
         /* 敌人 */
         .enemy-container {
@@ -255,9 +265,10 @@
         }
         .enemy-container.targeted {
             transform: scale(1.05);
+            filter: drop-shadow(0 0 10px var(--color-accent));
         }
         .enemy-sprite {
-            font-size: 6rem; /* Emoji as sprite */
+            font-size: 6rem; 
             animation: float 3s ease-in-out infinite;
         }
         @keyframes float {
@@ -265,14 +276,18 @@
             50% { transform: translateY(-10px); }
             100% { transform: translateY(0px); }
         }
+        #enemy-area {
+            flex-grow: 1; /* V1.0: 确保敌人区域填充 */
+        }
         
         /* 玩家 */
         .player-container {
             transition: transform 0.1s ease-in-out;
-            position: relative; /* 为状态图标定位 */
+            position: relative; 
         }
         .player-container.targeted {
             transform: scale(1.05);
+            filter: drop-shadow(0 0 10px var(--color-accent));
         }
 
         /* 状态条 (HP) */
@@ -287,7 +302,7 @@
             transition: width 0.3s ease;
         }
 
-        /* 敌人状态图标 */
+        /* 状态图标 */
         .enemy-container .status-icon-container {
             position: absolute;
             left: auto;
@@ -296,9 +311,8 @@
             display: flex;
             gap: 4px;
         }
-        /* V1.13: 玩家状态图标 (移出 player-container) */
         #player-status-area {
-            min-height: 38px; /* 留出空间 */
+            min-height: 38px; 
             display: flex;
             justify-content: center;
             align-items: center;
@@ -306,8 +320,8 @@
             padding: 4px 0;
             background-color: rgba(0,0,0,0.2);
             border-top: 1px solid var(--color-border);
+            flex-shrink: 0; /* V1.0: 防止压缩 */
         }
-        
         .status-icon {
             width: 28px;
             height: 28px;
@@ -329,6 +343,7 @@
         .status-icon.status-orange { background-color: var(--color-orange); }
         .status-icon.status-gray { background-color: var(--color-gray); }
         .status-icon.status-red { background-color: var(--color-red); }
+        .status-icon.status-blue { background-color: var(--color-blue); } 
 
         /* 按钮样式 */
         .btn {
@@ -365,6 +380,24 @@
         }
         .btn-yellow:hover:not(:disabled) {
             background-color: #facc15;
+        }
+        .btn-event {
+            background: var(--color-surface);
+            color: var(--color-text);
+            border: 1px solid var(--color-border);
+            text-align: left;
+            padding: 12px;
+        }
+        .btn-event:hover:not(:disabled) {
+            background-color: var(--color-border);
+        }
+        .btn-event.disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+        .btn-event .event-cost {
+            color: var(--color-red);
+            font-weight: 600;
         }
         
         /* 伤害/格挡 浮动文字 */
@@ -444,13 +477,35 @@
         }
         
         #enemy-intent-0 {
-            cursor: help; /* 提示可以点击 */
+            cursor: pointer;
         }
 
-        /* 路径节点 */
+        /* 路径节点 (Path Rework) */
+        #path-container { /* V1.0: 新容器 */
+            flex-shrink: 0;
+        }
+        #path-header {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 8px;
+            font-size: 1.25rem;
+            font-weight: 600;
+            background-color: rgba(0,0,0,0.3);
+            border-bottom: 1px solid var(--color-border);
+        }
+        #path-display {
+            display: flex;
+            justify-content: center;
+            gap: 6px; /* 节点间距 */
+            padding: 10px;
+            overflow-x: auto;
+            background-color: rgba(0,0,0,0.2);
+            border-bottom: 1px solid var(--color-border);
+        }
         .path-node {
-            width: 50px;
-            height: 50px;
+            width: 45px;
+            height: 45px;
             border-radius: 50%;
             background-color: var(--color-surface);
             border: 2px solid var(--color-border);
@@ -460,15 +515,21 @@
             font-size: 1.5rem;
             color: var(--color-text-dim);
             flex-shrink: 0;
+            font-weight: 600;
         }
         .path-node.current {
             border-color: var(--color-accent);
             color: var(--color-accent);
             box-shadow: 0 0 15px rgba(34, 211, 238, 0.3);
+            transform: scale(1.1);
         }
         .path-node.cleared {
             background-color: var(--color-border);
             opacity: 0.5;
+        }
+        .path-node.boss {
+            border-color: var(--color-red);
+            color: var(--color-red);
         }
         
         /* 锻造界面卡牌容器 */
@@ -520,6 +581,12 @@
             font-size: 0.875rem;
             color: var(--color-text-dim);
         }
+        #tooltip-desc .keyword {
+            color: var(--color-yellow);
+            font-weight: 600;
+            pointer-events: all; 
+            cursor: help;
+        }
         
     </style>
 </head>
@@ -531,8 +598,8 @@
         <!-- 1. 主菜单屏幕 -->
         <div id="main-menu-screen" class="screen active p-6 justify-between">
             <div class="text-center">
-                <h1 class="text-4xl font-bold text-white">深径：余烬</h1>
-                <p class="text-lg text-gray-400 mt-2">The Deep Path: Embers</p>
+                <h1 class="text-4xl font-bold text-white">迷你地牢</h1>
+                <p class="text-lg text-gray-400 mt-2">Mini Dungeon</p>
             </div>
             
             <div class="space-y-4">
@@ -564,108 +631,130 @@
             </div>
         </div>
 
-        <!-- 3. 游戏主屏幕 -->
+        <!-- 3. 游戏主屏幕 (V1.0: 结构重构) -->
         <div id="game-screen" class="screen">
-            <!-- 路径显示 -->
-            <div id="path-display" class="w-full p-2 flex justify-center space-x-1 bg-gray-900/80 backdrop-blur-sm border-b border-gray-700 overflow-x-auto">
-                <!-- JS动态填充路径节点 -->
-            </div>
             
-            <!-- 敌人区域 -->
-            <div id="enemy-area" class="flex-grow flex flex-col justify-center items-center space-y-2 p-4">
-                <div id="enemy-container-0" class="enemy-container">
-                    <div id="enemy-intent-0" class="p-1 px-3 bg-gray-700 rounded-full text-lg font-semibold flex items-center space-x-1.5">
-                        <!-- ⚔️ 5 -->
-                    </div>
-                    <div id="enemy-sprite-0" class="enemy-sprite">😈</div>
-                    <div id="enemy-hp-bar-0" class="w-2/3 hp-bar-bg h-4">
-                        <div class="hp-bar-fg"></div>
-                    </div>
-                    <div id="enemy-hp-text-0" class="text-sm">15 / 15</div>
-                    <div id="enemy-block-text-0" class="absolute -right-4 top-1/2 text-xl font-bold text-blue-400 bg-gray-800 p-1 px-2 rounded-full hidden">
-                        🛡️ 0
-                    </div>
-                    <!-- 敌人状态图标 -->
-                    <div id="enemy-status-icons-0" class="status-icon-container"></div>
+            <!-- V1.0: 路径容器 (始终可见) -->
+            <div id="path-container">
+                <div id="path-header">
+                    <span id="floor-display">第 1 层</span>
+                </div>
+                <div id="path-display">
+                    <!-- JS动态填充路径节点 -->
                 </div>
             </div>
             
-            <!-- 玩家区域 -->
-            <div id="player-area" class="p-4 border-t border-gray-700 bg-gray-800">
-                <div id="player-container" class="player-container flex items-center justify-between">
-                    <!-- 玩家状态 -->
-                    <div class="space-y-2 w-2/3">
-                        <div id="player-hp-bar" class="w-full hp-bar-bg h-5">
-                            <div class="hp-bar-fg"></div>
-                        </div>
-                        <div class="flex justify-between text-sm">
-                            <div id="player-hp-text" class="font-bold">50 / 50</div>
-                            <div id="player-block-text" class="font-bold text-blue-400">🛡️ 0</div>
+            <!-- V1.0: 主内容区 (切换战斗/事件/奖励) -->
+            <div id="main-content-area">
+                
+                <!-- 3a. 战斗容器 -->
+                <div id="combat-container" class="overflow-hidden">
+                    <!-- 敌人区域 -->
+                    <div id="enemy-area" class="flex-grow flex flex-col justify-center items-center space-y-2 p-4">
+                        <div id="enemy-container-0" class="enemy-container">
+                            <div id="enemy-intent-0" class="p-1 px-3 bg-gray-700 rounded-full text-lg font-semibold flex items-center space-x-1.5">
+                                <!-- ⚔️ 5 -->
+                            </div>
+                            <div id="enemy-sprite-0" class="enemy-sprite">😈</div>
+                            <div id="enemy-hp-bar-0" class="w-2/3 hp-bar-bg h-4">
+                                <div class="hp-bar-fg"></div>
+                            </div>
+                            <div id="enemy-hp-text-0" class="text-sm">15 / 15</div>
+                            <div id="enemy-block-text-0" class="absolute -right-4 top-1/2 text-xl font-bold text-blue-400 bg-gray-800 p-1 px-2 rounded-full hidden">
+                                🛡️ 0
+                            </div>
+                            <div id="enemy-status-icons-0" class="status-icon-container"></div>
                         </div>
                     </div>
-                    <!-- 能量 -->
-                    <div class="flex flex-col items-center">
-                        <div id="player-energy-text" class="text-5xl font-bold text-accent">3/3</div>
-                        <div class="text-xs text-gray-400">能量 ⚡</div>
+                    
+                    <!-- 玩家区域 -->
+                    <div id="player-area" class="p-4 border-t border-gray-700 bg-gray-800 flex-shrink-0">
+                        <div id="player-container" class="player-container flex items-center justify-between">
+                            <!-- 玩家状态 -->
+                            <div class="space-y-2 w-2/3">
+                                <div id="player-hp-bar" class="w-full hp-bar-bg h-5">
+                                    <div class="hp-bar-fg"></div>
+                                </div>
+                                <div class="flex justify-between text-sm">
+                                    <div id="player-hp-text" class="font-bold">50 / 50</div>
+                                    <div id="player-block-text" class="font-bold text-blue-400">🛡️ 0</div>
+                                </div>
+                            </div>
+                            <!-- 能量 -->
+                            <div class="flex flex-col items-center">
+                                <div id="player-energy-text" class="text-5xl font-bold text-accent">3/3</div>
+                                <div class="text-xs text-gray-400">能量 ⚡</div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </div>
-            
-            <!-- V1.13: 玩家状态图标区 (新布局) -->
-            <div id="player-status-area">
-                <!-- JS动态填充 -->
-            </div>
+                    
+                    <!-- 玩家状态图标区 -->
+                    <div id="player-status-area">
+                        <!-- JS动态填充 -->
+                    </div>
 
-            <!-- V1.14: 手牌区域 (CSS 重构) -->
-            <div id="hand-area">
-                <!-- 卡牌由JS动态填充 -->
-            </div>
-            
-            <!-- 底部操作栏 -->
-            <div class="p-3 bg-gray-800 border-t border-gray-700 flex justify-between items-center">
-                <div class="text-center relative">
-                    <div id="deck-count" class="font-bold text-lg">10</div>
-                    <div class="text-xs text-gray-400">牌堆</div>
+                    <!-- 手牌区域 (Layout V2) -->
+                    <div id="hand-area">
+                        <!-- 卡牌由JS动态填充 -->
+                    </div>
+                    
+                    <!-- 底部操作栏 -->
+                    <div id="bottom-bar" class="p-3 bg-gray-800 border-t border-gray-700 flex justify-between items-center flex-shrink-0">
+                        <div class="text-center relative">
+                            <div id="deck-count" class="font-bold text-lg">10</div>
+                            <div class="text-xs text-gray-400">牌堆</div>
+                        </div>
+                        <button id="end-turn-btn" class="btn btn-primary text-lg px-8 py-3">结束回合</button>
+                        <div class="text-center relative">
+                            <div id="discard-count" class="font-bold text-lg">0</div>
+                            <div class="text-xs text-gray-400">弃牌堆</div>
+                        </div>
+                    </div>
                 </div>
-                <button id="end-turn-btn" class="btn btn-primary text-lg px-8 py-3">结束回合</button>
-                <div class="text-center relative">
-                    <div id="discard-count" class="font-bold text-lg">0</div>
-                    <div class="text-xs text-gray-400">弃牌堆</div>
+                
+                <!-- 3b. 事件容器 (V1.0: 从 #event-screen 移入) -->
+                <div id="event-container" class="p-6 space-y-6 text-center">
+                    <h2 id="event-title" class="text-3xl font-bold text-white">遭遇事件</h2>
+                    <p id="event-description" class="text-lg text-gray-300">...</p>
+                    <div id="event-options" class="w-full max-w-sm mx-auto space-y-3">
+                        <!-- 事件选项由JS (btn-event) 填充 -->
+                    </div>
                 </div>
-            </div>
-        </div>
+                
+                <!-- 3c. 奖励容器 (V1.0: 从 #reward-screen 移入) -->
+                <div id="reward-container" class="p-6 space-y-6">
+                    <div class="text-center">
+                        <h2 id="reward-title" class="text-3xl font-bold text-white">战斗胜利！</h2> 
+                        <p class="text-lg text-yellow-400">获得 <span id="reward-currency">0</span> 🔥</p>
+                    </div>
+                    
+                    <div id="card-reward-options">
+                        <!-- 3张卡牌选项(水平)由JS填充 -->
+                    </div>
+                    
+                    <!-- 奖励按钮 -->
+                    <div class="w-full max-w-sm mx-auto space-y-3">
+                        <button id="confirm-reward-btn" class="btn btn-primary w-full hidden">确认选择</button>
+                        <div class="flex space-x-4 w-full">
+                            <button id="skip-reward-btn" class="btn btn-secondary w-1/2">跳过</button>
+                            <button id="reroll-reward-btn" class="btn btn-yellow w-1/2 hidden">重抽 (1)</button>
+                        </div>
+                    </div>
+                </div>
+
+            </div> <!-- End #main-content-area -->
+
+        </div> <!-- End #game-screen -->
         
-        <!-- 4. 奖励屏幕 -->
-        <div id="reward-screen" class="screen p-6 justify-center space-y-6">
-            <div class="text-center">
-                <h2 class="text-3xl font-bold text-white">深径的回响</h2>
-                <p class="text-lg text-yellow-400">获得 <span id="reward-currency">0</span> 🔥</p>
-            </div>
-            
-            <div id="card-reward-options" class="flex-grow">
-                <!-- 3张卡牌选项(扇形)由JS填充 -->
-            </div>
-            
-            <div class="flex space-x-4 w-full">
-                <button id="skip-reward-btn" class="btn btn-secondary w-1/2">跳过</button>
-                <button id="reroll-reward-btn" class="btn btn-yellow w-1/2 hidden">重抽 (1)</button>
-            </div>
-        </div>
-
-        <!-- 5. 事件屏幕 -->
-        <div id="event-screen" class="screen p-6 justify-center items-center space-y-6 text-center">
-            <h2 id="event-title" class="text-3xl font-bold text-white">遭遇事件</h2>
-            <p id="event-description" class="text-lg text-gray-300">一个古老的篝火在摇曳。</p>
-            <div id="event-options" class="w-full space-y-3">
-                <!-- 事件选项由JS填充 -->
-            </div>
-        </div>
+        <!-- 4. 奖励屏幕 (V1.0: 已删除) -->
+        
+        <!-- 5. 事件屏幕 (V1.0: 已删除) -->
 
         <!-- 6. 游戏结束屏幕 -->
         <div id="game-over-screen" class="screen p-6 justify-center items-center text-center space-y-6">
             <h2 id="game-over-title" class="text-4xl font-bold text-red-500">你倒下了</h2>
             <div class="text-lg space-y-2">
-                <p>你深入到了第 <span id="final-floor" class="font-bold text-xl text-white">0</span> 层</p>
+                <p>你深入到了第 <span id="final-floor" class="font-bold text-xl text-white">0</span> 层</p> 
                 <p>你收集了 <span id="final-currency" class="font-bold text-xl text-yellow-400">0</span> 🔥 余烬</p>
             </div>
             <button id="game-over-back-btn" class="btn btn-primary w-full text-lg">返回主菜单</button>
@@ -679,14 +768,14 @@
                     <!-- 卡牌列表由JS填充 -->
                 </div>
                 <div class="p-4 border-t border-gray-700">
-                    <button id="smith-back-btn" class="btn btn-secondary w-full">取消</button>
+                    <button id="smith-back-btn" class="btn btn-secondary w-full">离开</button> <!-- V1.1: 文本更改 -->
                 </div>
             </div>
         </div>
 
     </div>
 
-    <!-- V1.13: Tooltip 提示框 (HTML) -->
+    <!-- Tooltip 提示框 -->
     <div id="tooltip">
         <h4 id="tooltip-title"></h4>
         <p id="tooltip-desc"></p>
@@ -699,17 +788,17 @@
             const $ = (selector) => document.querySelector(selector);
             const $$ = (selector) => document.querySelectorAll(selector);
             
-            const PROFILE_KEY = 'deepPathEmbersProfile';
-            const RUN_KEY = 'deepPathEmbersRun';
+            const PROFILE_KEY = 'miniDungeonProfile'; 
+            const RUN_KEY = 'miniDungeonRun'; 
 
             let playerProfile = {}; // 局外成长
             let runState = {}; // 当前局内状态
             let cardDefinitions = {}; // 卡牌定义
             let enemyDefinitions = {}; // 敌人定义
-            let pathDefinition = []; // 路径定义
+            let eventDefinitions = {}; // 事件定义
             let upgradeDefinitions = {}; // 升级定义
             let statusDefinitions = {}; // 状态定义
-            let intentDefinitions = {}; // V1.13: 意图定义
+            let intentDefinitions = {}; // 意图定义
             
             const GAME_STATES = {
                 MAIN_MENU: 'MAIN_MENU',
@@ -724,6 +813,27 @@
                 COMBAT_OVER: 'COMBAT_OVER', // 战斗胜利，等待奖励
             };
 
+            const NODE_TYPE = {
+                MONSTER: 'M',
+                ELITE: 'E',
+                EVENT: 'R',
+                BOSS: 'B',
+            };
+            const NODE_SPRITES = {
+                [NODE_TYPE.MONSTER]: '👺',
+                [NODE_TYPE.ELITE]: '🗿',
+                [NODE_TYPE.EVENT]: '🔥', 
+                [NODE_TYPE.BOSS]: '🤖',
+                FOG: '?', 
+            };
+            
+            const CARD_RARITY = {
+                BASIC: 'basic',
+                COMMON: 'common',
+                RARE: 'rare',
+                CURSE: 'curse',
+            };
+
             const D = { // DOM 引用
                 gameContainer: $('#game-container'), 
                 animationLayer: $('#animation-layer'), 
@@ -731,8 +841,6 @@
                     mainMenu: $('#main-menu-screen'),
                     upgrades: $('#upgrade-screen'),
                     game: $('#game-screen'),
-                    rewards: $('#reward-screen'),
-                    event: $('#event-screen'),
                     gameOver: $('#game-over-screen'),
                     smith: $('#smith-screen'), 
                 },
@@ -748,6 +856,14 @@
                     optionsContainer: $('#upgrade-options-container'),
                 },
                 game: {
+                    pathContainer: $('#path-container'),
+                    mainContentArea: $('#main-content-area'),
+                    combatContainer: $('#combat-container'),
+                    eventContainer: $('#event-container'),
+                    rewardContainer: $('#reward-container'),
+                    bottomBar: $('#bottom-bar'),
+                    
+                    floorDisplay: $('#floor-display'), 
                     pathDisplay: $('#path-display'),
                     enemyArea: $('#enemy-area'),
                     playerArea: $('#player-area'),
@@ -763,7 +879,9 @@
                     discardCount: $('#discard-count'),
                 },
                 rewards: {
+                    title: $('#reward-title'), 
                     options: $('#card-reward-options'),
+                    confirmBtn: $('#confirm-reward-btn'), 
                     skipBtn: $('#skip-reward-btn'),
                     rerollBtn: $('#reroll-reward-btn'),
                     currency: $('#reward-currency'),
@@ -813,6 +931,12 @@
                         desc: '增加 <strong>攻击</strong> 造成的伤害。',
                         color: 'red'
                     },
+                    'barricade': { 
+                        name: '壁垒',
+                        icon: '🛡️',
+                        desc: '你的 <strong>格挡</strong> 不会在回合结束时消失。',
+                        color: 'blue'
+                    },
                     'exhaust': { 
                         name: '消耗',
                         icon: '🔥',
@@ -846,11 +970,11 @@
                     },
                     'debuff_vulnerable': {
                         name: '减益 (Debuff)',
-                        desc: (val) => `敌人将对你施加 <strong>${val}</strong> 回合 <strong>易伤</strong>。`
+                        desc: (val) => `敌人将对你施加 <strong>${val}</strong> 回合 <k>易伤</k>。`
                     },
                     'debuff_weak': {
                         name: '减益 (Debuff)',
-                        desc: (val) => `敌人将对你施加 <strong>${val}</strong> 回合 <strong>虚弱</strong>。`
+                        desc: (val) => `敌人将对你施加 <strong>${val}</strong> 回合 <k>虚弱</k>。`
                     },
                     'pollute': {
                         name: '污染',
@@ -861,15 +985,17 @@
             
             function defineCards() {
                 cardDefinitions = {
-                    // --- 初始卡牌 ---
+                    // --- 基础卡牌 (Basic) ---
                     'strike': {
                         id: 'strike', name: '打击', cost: 1, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.BASIC,
                         desc: '造成 6 点伤害。',
                         upgradesTo: 'strike_plus',
                         effect: (caster, target) => dealDamage(target, 6, caster),
                     },
                     'strike_plus': {
                         id: 'strike_plus', name: '打击+', cost: 1, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.BASIC,
                         desc: '造成 9 点伤害。',
                         upgraded: true,
                         effect: (caster, target) => dealDamage(target, 9, caster),
@@ -877,42 +1003,46 @@
                     'defend': {
                         id: 'defend', name: '防御', cost: 1, type: 'skill',
                         desc: '获得 5 点格挡。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.BASIC,
                         upgradesTo: 'defend_plus',
                         effect: (caster) => addBlock(caster, 5),
                     },
                     'defend_plus': {
                         id: 'defend_plus', name: '防御+', cost: 1, type: 'skill',
                         desc: '获得 8 点格挡。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.BASIC,
                         upgraded: true,
                         effect: (caster) => addBlock(caster, 8),
                     },
                     
-                    // --- 普通卡牌 ---
+                    // --- 普通卡牌 (Common) ---
                     'heavy_strike': {
                         id: 'heavy_strike', name: '重击', cost: 2, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 12 点伤害。',
                         upgradesTo: 'heavy_strike_plus',
                         effect: (caster, target) => dealDamage(target, 12, caster),
                     },
                     'heavy_strike_plus': {
                         id: 'heavy_strike_plus', name: '重击+', cost: 2, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 16 点伤害。',
                         upgraded: true,
                         effect: (caster, target) => dealDamage(target, 16, caster),
                     },
                     'double_hit': {
                         id: 'double_hit', name: '二连击', cost: 1, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 4 点伤害，2次。',
                         upgradesTo: 'double_hit_plus',
                         effect: (caster, target) => {
-                            dealDamage(target, 4, caster, 0); // V1.14: 延迟
+                            dealDamage(target, 4, caster, 0); 
                             dealDamage(target, 4, caster, 150);
                         },
                     },
                     'double_hit_plus': {
                         id: 'double_hit_plus', name: '二连击+', cost: 1, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 6 点伤害，2次。',
                         upgraded: true,
                         effect: (caster, target) => {
@@ -923,40 +1053,44 @@
                     'iron_wall': {
                         id: 'iron_wall', name: '铁壁', cost: 2, type: 'skill',
                         desc: '获得 10 点格挡。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.COMMON,
                         upgradesTo: 'iron_wall_plus',
                         effect: (caster) => addBlock(caster, 10),
                     },
                     'iron_wall_plus': {
                         id: 'iron_wall_plus', name: '铁壁+', cost: 2, type: 'skill',
                         desc: '获得 14 点格挡。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.COMMON,
                         upgraded: true,
                         effect: (caster) => addBlock(caster, 14),
                     },
                     'quick_slash': {
                         id: 'quick_slash', name: '快斩', cost: 0, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 3 点伤害。',
                         upgradesTo: 'quick_slash_plus',
                         effect: (caster, target) => dealDamage(target, 3, caster),
                     },
                     'quick_slash_plus': {
                         id: 'quick_slash_plus', name: '快斩+', cost: 0, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 5 点伤害。',
                         upgraded: true,
                         effect: (caster, target) => dealDamage(target, 5, caster),
                     },
                     'vampiric_touch': {
                         id: 'vampiric_touch', name: '吸血', cost: 1, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 5 点伤害。回复 2 点生命。',
                         upgradesTo: 'vampiric_touch_plus',
                         effect: (caster, target) => { 
                             dealDamage(target, 5, caster); 
-                            setTimeout(() => healDamage(caster, 2), 200); // 伤害后回血
+                            setTimeout(() => healDamage(caster, 2), 200);
                         },
                     },
                     'vampiric_touch_plus': {
                         id: 'vampiric_touch_plus', name: '吸血+', cost: 1, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 7 点伤害。回复 3 点生命。',
                         upgraded: true,
                         effect: (caster, target) => { 
@@ -967,21 +1101,21 @@
                     'battle_focus': {
                         id: 'battle_focus', name: '专注', cost: 1, type: 'skill',
                         desc: '抽 2 张牌。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.COMMON,
                         upgradesTo: 'battle_focus_plus',
                         effect: (caster, target, card) => drawCards(2, card),
                     },
                     'battle_focus_plus': {
                         id: 'battle_focus_plus', name: '专注+', cost: 1, type: 'skill',
                         desc: '抽 3 张牌。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.COMMON,
                         upgraded: true,
                         effect: (caster, target, card) => drawCards(3, card),
                     },
                     'break': {
                         id: 'break', name: '破绽', cost: 1, type: 'skill',
                         desc: '施加 2 层<k>易伤</k>。',
-                        target: 'enemy', 
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         upgradesTo: 'break_plus',
                         exhaust: true,
                         effect: (caster, target) => applyStatus(target, 'vulnerable', 2, caster),
@@ -989,7 +1123,7 @@
                     'break_plus': {
                         id: 'break_plus', name: '破绽+', cost: 1, type: 'skill',
                         desc: '施加 3 层<k>易伤</k>。',
-                        target: 'enemy',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         upgraded: true,
                         exhaust: true,
                         effect: (caster, target) => applyStatus(target, 'vulnerable', 3, caster),
@@ -997,30 +1131,32 @@
                     'demoralize': {
                         id: 'demoralize', name: '挫志', cost: 1, type: 'skill',
                         desc: '施加 1 层<k>虚弱</k>。',
-                        target: 'enemy',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         upgradesTo: 'demoralize_plus',
                         effect: (caster, target) => applyStatus(target, 'weak', 1, caster),
                     },
                     'demoralize_plus': {
                         id: 'demoralize_plus', name: '挫志+', cost: 1, type: 'skill',
                         desc: '施加 2 层<k>虚弱</k>。',
-                        target: 'enemy',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         upgraded: true,
                         effect: (caster, target) => applyStatus(target, 'weak', 2, caster),
                     },
                     'bulwark': {
-                        id: 'bulwark', name: '壁垒', cost: 1, type: 'attack',
+                        id: 'bulwark', name: '坚守', cost: 1, type: 'attack', 
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 7 点伤害。若你有格挡，抽 1 张牌。',
                         upgradesTo: 'bulwark_plus',
                         effect: (caster, target, card) => {
                             dealDamage(target, 7, caster);
                             if (caster.block > 0) {
-                                setTimeout(() => drawCards(1, card), 200); // 伤害后抽卡
+                                setTimeout(() => drawCards(1, card), 200);
                             }
                         },
                     },
                     'bulwark_plus': {
-                        id: 'bulwark_plus', name: '壁垒+', cost: 1, type: 'attack',
+                        id: 'bulwark_plus', name: '坚守+', cost: 1, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.COMMON,
                         desc: '造成 10 点伤害。若你有格挡，抽 1 张牌。',
                         upgraded: true,
                         effect: (caster, target, card) => {
@@ -1033,7 +1169,7 @@
                     'energy_burst': {
                         id: 'energy_burst', name: '能量爆发', cost: 0, type: 'skill',
                         desc: '获得 2 点能量 ⚡。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.COMMON,
                         upgradesTo: 'energy_burst_plus',
                         exhaust: true,
                         effect: (caster) => {
@@ -1044,7 +1180,7 @@
                     'energy_burst_plus': {
                         id: 'energy_burst_plus', name: '能量爆发+', cost: 0, type: 'skill',
                         desc: '获得 3 点能量 ⚡。',
-                        target: 'self',
+                        target: 'self', rarity: CARD_RARITY.COMMON,
                         upgraded: true,
                         exhaust: true,
                         effect: (caster) => {
@@ -1052,10 +1188,59 @@
                             playAnimation(D.game.playerEnergyText, 'anim-pulse');
                         },
                     },
+
+                    // --- 稀有卡牌 (Rare) ---
+                    'adrenaline': { 
+                        id: 'adrenaline', name: '能量爆发+', cost: 0, type: 'skill',
+                        target: 'self', rarity: CARD_RARITY.RARE,
+                        desc: '获得 2 点能量 ⚡。抽 2 张牌。<k>消耗</k>。', 
+                        exhaust: true, upgraded: true, 
+                        effect: (caster, target, card) => { 
+                            caster.energy += 2; 
+                            playAnimation(D.game.playerEnergyText, 'anim-pulse'); 
+                            drawCards(2, card); 
+                        },
+                    },
+                    'barricade': { 
+                        id: 'barricade', name: '壁垒', cost: 2, type: 'skill',
+                        target: 'self', rarity: CARD_RARITY.RARE,
+                        desc: '获得 15 点格挡。你的<k>格挡</k>不再于回合结束时消失。', 
+                        upgradesTo: 'barricade_plus',
+                        effect: (caster) => { 
+                            addBlock(caster, 15); 
+                            applyStatus(caster, 'barricade', 1, caster); 
+                        },
+                    },
+                    'barricade_plus': { 
+                        id: 'barricade_plus', name: '壁垒+', cost: 2, type: 'skill',
+                        target: 'self', rarity: CARD_RARITY.RARE,
+                        desc: '获得 20 点格挡。你的<k>格挡</k>不再于回合结束时消失。', 
+                        upgraded: true, 
+                        effect: (caster) => { 
+                            addBlock(caster, 20); 
+                            applyStatus(caster, 'barricade', 1, caster);
+                        },
+                    },
+                    'annihilate': { 
+                        id: 'annihilate', name: '湮灭', cost: 3, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.RARE,
+                        desc: '造成 30 点伤害。', 
+                        upgradesTo: 'annihilate_plus',
+                        effect: (caster, target) => dealDamage(target, 30, caster),
+                    },
+                    'annihilate_plus': { 
+                        id: 'annihilate_plus', name: '湮灭+', cost: 3, type: 'attack',
+                        target: 'enemy', rarity: CARD_RARITY.RARE,
+                        desc: '造成 40 点伤害。', 
+                        upgraded: true, 
+                        effect: (caster, target) => dealDamage(target, 40, caster),
+                    },
+                    
+                    // --- 诅咒 (Curse) ---
                     'slime_curse': {
                         id: 'slime_curse', name: '黏液', cost: 0, type: 'curse',
+                        target: 'self', rarity: CARD_RARITY.CURSE,
                         desc: '无用。',
-                        target: 'self',
                         exhaust: true,
                         effect: () => {}, 
                     }
@@ -1064,6 +1249,7 @@
             
             function defineEnemies() {
                 enemyDefinitions = {
+                    // --- Floor 1 ---
                     'goblin': {
                         name: '哥布林', hp: 20, sprite: '👺', currency: 3,
                         moves: [
@@ -1079,6 +1265,41 @@
                             { type: 'pollute', val: 1, intent: '🤮 1', intentKey: 'pollute' }, 
                         ]
                     },
+                    'guardian': { // Elite
+                        name: '守卫', hp: 60, sprite: '🗿', currency: 15,
+                        moves: [
+                            { type: 'attack', val: 12, intent: '⚔️ 12', intentKey: 'attack' },
+                            { type: 'debuff', status: 'vulnerable', val: 1, intent: '😵 1', intentKey: 'debuff_vulnerable' }, 
+                            { type: 'defend', val: 15, intent: '🛡️ 15', intentKey: 'defend' },
+                        ]
+                    },
+                    'golem': { // Boss
+                        name: '魔像', hp: 120, sprite: '🤖', currency: 50, isBoss: true,
+                        moves: [
+                            { type: 'attack', val: 15, intent: '⚔️ 15', intentKey: 'attack' },
+                            { type: 'attack_multi', val: 8, count: 2, intent: '⚔️ 8 (2次)', intentKey: 'attack_multi' },
+                            { type: 'defend', val: 20, intent: '🛡️ 20', intentKey: 'defend' },
+                            { type: 'buff', status: 'strength', val: 3, intent: '💪+3', intentKey: 'buff' }, 
+                            { type: 'pollute', val: 2, intent: '🤮 2', intentKey: 'pollute' }, 
+                        ],
+                        onTurn: (enemy, onEndCallback) => { 
+                            const move = enemy.nextMove;
+                            if (move.intentKey === 'attack_multi') { 
+                                playAnimation(enemy.dom.sprite, 'anim-lunge', () => {
+                                    takeDamage(runState.player, move.val, enemy, 0); 
+                                    setTimeout(() => {
+                                        playAnimation(enemy.dom.sprite, 'anim-lunge', () => {
+                                            takeDamage(runState.player, move.val, enemy, 0); 
+                                            onEndCallback(); 
+                                        });
+                                    }, 300); 
+                                });
+                            } else {
+                                executeDefaultEnemyMove(enemy, onEndCallback);
+                            }
+                        }
+                    },
+                    // --- Floor 2+ ---
                     'orc': {
                         name: '兽人', hp: 40, sprite: '👹', currency: 8,
                         moves: [
@@ -1095,56 +1316,82 @@
                             { type: 'debuff', status: 'weak', val: 1, intent: '😵‍💫 1', intentKey: 'debuff_weak' }, 
                         ]
                     },
-                    'guardian': {
-                        name: '守卫', hp: 60, sprite: '🗿', currency: 15,
-                        moves: [
-                            { type: 'attack', val: 12, intent: '⚔️ 12', intentKey: 'attack' },
-                            { type: 'debuff', status: 'vulnerable', val: 1, intent: '😵 1', intentKey: 'debuff_vulnerable' }, 
-                            { type: 'defend', val: 15, intent: '🛡️ 15', intentKey: 'defend' },
-                        ]
-                    },
-                    'golem': {
-                        name: '魔像', hp: 120, sprite: '🤖', currency: 50,
-                        moves: [
-                            { type: 'attack', val: 15, intent: '⚔️ 15', intentKey: 'attack' },
-                            { type: 'attack_multi', val: 8, count: 2, intent: '⚔️ 8 (2次)', intentKey: 'attack_multi' },
-                            { type: 'defend', val: 20, intent: '🛡️ 20', intentKey: 'defend' },
-                            { type: 'buff', status: 'strength', val: 3, intent: '💪+3', intentKey: 'buff' }, 
-                            { type: 'pollute', val: 2, intent: '🤮 2', intentKey: 'pollute' }, 
-                        ],
-                        onTurn: (enemy, onEndCallback) => { 
-                            const move = enemy.nextMove;
-                            if (move.intentKey === 'attack_multi') { 
-                                playAnimation(enemy.dom.sprite, 'anim-lunge', () => {
-                                    takeDamage(runState.player, move.val, enemy, 0); // 第一次攻击
-                                    setTimeout(() => {
-                                        playAnimation(enemy.dom.sprite, 'anim-lunge', () => {
-                                            takeDamage(runState.player, move.val, enemy, 0); // 第二次攻击
-                                            onEndCallback(); // 两次攻击后结束
-                                        });
-                                    }, 300); // 两次攻击的间隔
-                                });
-                            } else {
-                                executeDefaultEnemyMove(enemy, onEndCallback);
-                            }
-                        }
-                    },
                 }
             }
             
-            function definePath() {
-                pathDefinition = [
-                    { type: 'M', sprite: '👺', enemies: ['goblin', 'slime'] },
-                    { type: 'M', sprite: '👺', enemies: ['goblin', 'slime'] },
-                    { type: 'M', sprite: '👺', enemies: ['goblin', 'slime'] },
-                    { type: 'R', sprite: '🔥', event: 'rest' },
-                    { type: 'M', sprite: '👹', enemies: ['orc', 'shadow'] },
-                    { type: 'M', sprite: '👹', enemies: ['orc', 'shadow'] },
-                    { type: 'E', sprite: '🗿', enemies: ['guardian'] },
-                    { type: 'R', sprite: '🔥', event: 'rest' },
-                    { type: 'M', sprite: '👹', enemies: ['orc', 'shadow', 'guardian'] },
-                    { type: 'B', sprite: '🤖', enemies: ['golem'] },
-                ];
+            function defineEvents() {
+                eventDefinitions = {
+                    'rest': {
+                        id: 'rest',
+                        title: '篝火',
+                        desc: '一个古老的篝火在摇曳。你感到一阵温暖。',
+                        sprite: '🔥',
+                        choices: [
+                            { text: '休息 (回复 30% HP)', action: () => {
+                                healDamage(runState.player, Math.floor(runState.player.maxHp * 0.3));
+                                proceedToNextLevel();
+                            }},
+                            { text: '锻造 (升级一张卡)', action: () => {
+                                // V1.1: 锁定选择
+                                D.event.description.textContent = '你选择在篝火旁锻造你的装备。';
+                                D.event.options.innerHTML = ''; // 清空选项
+                                showSmithScreen();
+                            }},
+                            { text: '离开', action: () => proceedToNextLevel() },
+                        ]
+                    },
+                    'statue': {
+                        id: 'statue',
+                        title: '低语神像',
+                        desc: '一个神像在低语，它渴望你的生命力。',
+                        sprite: '🙏',
+                        choices: [
+                            { 
+                                text: '献祭 <span class="event-cost">(失去 10% 最大HP)</span>', 
+                                cost: () => runState.player.hp > Math.floor(runState.player.maxHp * 0.1), 
+                                action: () => {
+                                    const cost = Math.floor(runState.player.maxHp * 0.1);
+                                    runState.player.maxHp -= cost;
+                                    if (runState.player.hp > runState.player.maxHp) {
+                                        runState.player.hp = runState.player.maxHp;
+                                    }
+                                    applyStatus(runState.player, 'strength', 1, runState.player); 
+                                    updateEntityUI(runState.player);
+                                    proceedToNextLevel();
+                                }
+                            },
+                            { text: '忽略', action: () => proceedToNextLevel() },
+                        ]
+                    },
+                    'chest': {
+                        id: 'chest',
+                        title: '黄金宝箱',
+                        desc: '一个未上锁的华丽宝箱。',
+                        sprite: '📦',
+                        choices: [
+                            { 
+                                text: '打开', 
+                                action: () => {
+                                    if (Math.random() < 0.3) {
+                                        // 陷阱!
+                                        addCardToDeck(cardDefinitions.slime_curse);
+                                        D.event.description.textContent = '是陷阱！你获得了一张 <k>诅咒</k>...'; 
+                                        D.event.options.innerHTML = `<button class="btn btn-secondary w-full" id="event-leave">离开</button>`;
+                                        $('#event-leave').onclick = () => proceedToNextLevel();
+                                    } else {
+                                        // 奖励!
+                                        runState.runCurrency += 20;
+                                        addCardToDeck(getRandomCard(CARD_RARITY.COMMON));
+                                        D.event.description.textContent = '你获得了 20🔥 和一张新卡牌！';
+                                        D.event.options.innerHTML = `<button class="btn btn-primary w-full" id="event-leave">太好了</button>`;
+                                        $('#event-leave').onclick = () => proceedToNextLevel();
+                                    }
+                                }
+                            },
+                            { text: '离开', action: () => proceedToNextLevel() },
+                        ]
+                    }
+                };
             }
             
             function defineUpgrades() {
@@ -1343,6 +1590,24 @@
 
             // --- 局内游戏 (Run) ---
 
+            function generateFloorPath(floorNum) {
+                let path = [];
+                if (floorNum === 1) {
+                    path = [
+                        NODE_TYPE.MONSTER, NODE_TYPE.MONSTER, NODE_TYPE.EVENT, 
+                        NODE_TYPE.ELITE, NODE_TYPE.MONSTER, NODE_TYPE.EVENT,
+                        NODE_TYPE.MONSTER, NODE_TYPE.BOSS
+                    ];
+                } else {
+                     path = [
+                        NODE_TYPE.MONSTER, NODE_TYPE.MONSTER, NODE_TYPE.EVENT,
+                        NODE_TYPE.MONSTER, NODE_TYPE.ELITE, NODE_TYPE.EVENT,
+                        NODE_TYPE.ELITE, NODE_TYPE.MONSTER, NODE_TYPE.BOSS
+                    ];
+                }
+                return path;
+            }
+
             function startNewRun() {
                 runState = {
                     player: {
@@ -1352,7 +1617,7 @@
                         energy: playerProfile.baseEnergy,
                         block: 0,
                         isPlayer: true,
-                        status: { vulnerable: 0, weak: 0, strength: 0 }, 
+                        status: { vulnerable: 0, weak: 0, strength: 0, barricade: 0 }, 
                         greedBonus: playerProfile.greedBonus,
                         smithChance: playerProfile.smithChance,
                         rerollCharges: playerProfile.rerollCharges,
@@ -1361,13 +1626,31 @@
                     hand: [],
                     discard: [],
                     exhaustPile: [],
-                    currentFloor: 0,
+                    currentFloor: 1,  
+                    currentLevel: 0,  
+                    floorPath: [],    
                     runCurrency: 0,
                     gameState: null,
                     selectedCardId: null,
+                    selectedRewardCardId: null, 
+                    isBossDefeated: false, 
                 };
                 
+                runState.floorPath = generateFloorPath(runState.currentFloor); 
                 updatePathDisplay();
+                startNextEncounter();
+            }
+            
+            function startNewFloor() {
+                runState.currentFloor++;
+                runState.currentLevel = 0;
+                runState.floorPath = generateFloorPath(runState.currentFloor);
+                runState.isBossDefeated = false;
+                
+                clearPlayerCombatStatus(); 
+                
+                updatePathDisplay();
+                saveRunState(); // 保存进度
                 startNextEncounter();
             }
             
@@ -1375,10 +1658,15 @@
                 if (runState.gameState === GAME_STATES.GAME_OVER && newState !== GAME_STATES.MAIN_MENU) {
                     return; 
                 }
-                
                 runState.gameState = newState;
                 
+                // 1. 切换主屏幕
                 Object.values(D.screens).forEach(screen => screen.classList.remove('active'));
+                
+                // 2. 切换游戏子容器
+                D.game.combatContainer.style.display = 'none';
+                D.game.eventContainer.style.display = 'none';
+                D.game.rewardContainer.style.display = 'none';
                 
                 switch (newState) {
                     case GAME_STATES.MAIN_MENU:
@@ -1390,22 +1678,32 @@
                     case GAME_STATES.GAME_OVER:
                         D.screens.gameOver.classList.add('active');
                         break;
+                    
+                    // --- In-Game States ---
                     case GAME_STATES.EVENT:
-                        D.screens.event.classList.add('active');
+                        D.screens.game.classList.add('active');
+                        D.game.eventContainer.style.display = 'flex';
                         break;
                     case GAME_STATES.REWARD:
-                        D.screens.rewards.classList.add('active');
+                        D.screens.game.classList.add('active');
+                        D.game.rewardContainer.style.display = 'flex';
                         break;
+                    
                     case GAME_STATES.SMITHING:
-                        D.screens.smith.classList.add('active');
+                        D.screens.game.classList.add('active');
+                        D.game.eventContainer.style.display = 'flex'; // 保持事件背景可见
+                        D.screens.smith.classList.add('active'); // 模态框
                         break;
+                        
                     case GAME_STATES.PLAYER_TURN:
                     case GAME_STATES.PROCESSING_LOGIC:
                     case GAME_STATES.COMBAT_OVER:
                         D.screens.game.classList.add('active');
+                        D.game.combatContainer.style.display = 'flex';
                         break;
                 }
                 
+                // 3. 结束回合按钮
                 if (newState === GAME_STATES.PLAYER_TURN) {
                     D.game.endTurnBtn.disabled = false;
                     D.game.endTurnBtn.classList.add('btn-primary');
@@ -1416,6 +1714,7 @@
                     D.game.endTurnBtn.classList.add('opacity-50');
                 }
                 
+                // 4. 奖励屏幕按钮
                 if (newState === GAME_STATES.REWARD) {
                     if (runState.player.rerollCharges > 0) {
                         D.rewards.rerollBtn.classList.remove('hidden');
@@ -1424,6 +1723,7 @@
                     } else {
                         D.rewards.rerollBtn.classList.add('hidden');
                     }
+                    D.rewards.confirmBtn.classList.add('hidden'); 
                 }
             }
 
@@ -1438,22 +1738,42 @@
                 return { ...cardDef, instanceId: Math.random().toString(36).substring(2, 9) };
             }
 
+            function getEnemyIdForNode(nodeType, floorNum) {
+                let pool = [];
+                if (nodeType === NODE_TYPE.MONSTER) {
+                    pool = (floorNum === 1) ? ['goblin', 'slime'] : ['orc', 'shadow', 'goblin']; 
+                } else if (nodeType === NODE_TYPE.ELITE) {
+                    pool = ['guardian']; 
+                } else if (nodeType === NODE_TYPE.BOSS) {
+                    pool = ['golem']; 
+                }
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+            
+            function getEventIdForNode(nodeType, floorNum) {
+                const pool = ['rest', 'statue', 'chest']; 
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+
             function startNextEncounter() {
-                const floorData = pathDefinition[runState.currentFloor];
-                if (!floorData) {
+                const nodeType = runState.floorPath[runState.currentLevel];
+                if (!nodeType) {
+                    console.error("路径已尽, 但未触发新楼层?");
                     gameOver(true); // 游戏胜利
                     return;
                 }
                 
-                if (floorData.type === 'M' || floorData.type === 'E' || floorData.type === 'B') {
-                    const enemyId = floorData.enemies[Math.floor(Math.random() * floorData.enemies.length)];
+                D.game.floorDisplay.textContent = `第 ${runState.currentFloor} 层`; 
+                
+                if (nodeType === NODE_TYPE.MONSTER || nodeType === NODE_TYPE.ELITE || nodeType === NODE_TYPE.BOSS) {
+                    const enemyId = getEnemyIdForNode(nodeType, runState.currentFloor);
                     const enemyDef = enemyDefinitions[enemyId];
                     
                     runState.enemy = {
                         ...enemyDef,
                         hp: enemyDef.hp, maxHp: enemyDef.hp,
                         block: 0, nextMove: null, isPlayer: false,
-                        status: { vulnerable: 0, weak: 0, strength: 0 }, 
+                        status: { vulnerable: 0, weak: 0, strength: 0, barricade: 0 }, 
                         dom: { 
                             container: $(`#enemy-container-0`),
                             intent: $(`#enemy-intent-0`),
@@ -1465,29 +1785,42 @@
                         }
                     };
                     startPlayerTurn();
-                } else if (floorData.type === 'R') {
-                    showEventScreen(floorData.event);
+                } else if (nodeType === NODE_TYPE.EVENT) {
+                    const eventId = getEventIdForNode(nodeType, runState.currentFloor);
+                    showEventScreen(eventId);
                 }
             }
             
             function showEventScreen(eventId) {
-                if (eventId === 'rest') {
-                    D.event.title.textContent = '篝火';
-                    D.event.description.textContent = '一个古老的篝火在摇曳。你感到一阵温暖。';
-                    D.event.options.innerHTML = `
-                        <button class="btn btn-primary w-full" data-choice="rest">休息 (回复 30% HP)</button>
-                        <button class="btn btn-secondary w-full" data-choice="smith">锻造 (升级一张卡)</button>
-                        <button class="btn btn-secondary w-full" data-choice="skip">离开</button>
-                    `;
-                    D.event.options.querySelector('[data-choice="rest"]').onclick = () => {
-                        healDamage(runState.player, Math.floor(runState.player.maxHp * 0.3));
-                        proceedToNextFloor();
-                    };
-                    D.event.options.querySelector('[data-choice="smith"]').onclick = () => {
-                        showSmithScreen();
-                    };
-                     D.event.options.querySelector('[data-choice="skip"]').onclick = proceedToNextFloor;
+                const event = eventDefinitions[eventId];
+                if (!event) {
+                    console.error(`未找到事件: ${eventId}`);
+                    proceedToNextLevel();
+                    return;
                 }
+                
+                D.event.title.textContent = event.title;
+                D.event.description.innerHTML = formatDescription(event.desc); 
+                D.event.options.innerHTML = ''; 
+                
+                event.choices.forEach(choice => {
+                    const btn = document.createElement('button');
+                    btn.className = 'btn btn-event w-full';
+                    btn.innerHTML = choice.text; 
+                    
+                    let disabled = false;
+                    if (choice.cost && !choice.cost()) {
+                        disabled = true;
+                        btn.classList.add('disabled');
+                        btn.disabled = true;
+                    }
+                    
+                    if (!disabled) {
+                        btn.onclick = choice.action;
+                    }
+                    D.event.options.appendChild(btn);
+                });
+                
                 setGameState(GAME_STATES.EVENT);
             }
             
@@ -1520,11 +1853,16 @@
                             const newCardDef = cardDefinitions[oldCard.upgradesTo];
                             runState[loc][index] = { ...newCardDef, instanceId: oldCard.instanceId };
                             
+                            // V1.1: 升级后隐藏模态框
+                            D.screens.smith.classList.remove('active'); 
+                            
                             if (Math.random() < runState.player.smithChance) {
                                 D.event.description.textContent = "你灵光一闪，锻造未消耗篝火！";
+                                D.event.options.innerHTML = `<button class="btn btn-primary w-full" id="event-leave">太好了</button>`;
+                                $('#event-leave').onclick = () => proceedToNextLevel();
                                 setGameState(GAME_STATES.EVENT);
                             } else {
-                                proceedToNextFloor(); 
+                                proceedToNextLevel(); 
                             }
                             return; 
                         }
@@ -1534,28 +1872,29 @@
             
             function clearPlayerCombatStatus() {
                 runState.player.block = 0;
-                // V1.14: 修正，只清除会衰减的状态
                 runState.player.status.vulnerable = 0;
                 runState.player.status.weak = 0;
-                // runState.player.status.strength = 0; // 力量是永久的
-                
                 updateEntityUI(runState.player);
             }
             
-            function proceedToNextFloor() {
-                // 【V1.13 BUG FIX】: 在进入下一层时清除玩家的战斗状态
-                clearPlayerCombatStatus(); 
+            function proceedToNextLevel() {
+                if (runState.gameState !== GAME_STATES.EVENT) {
+                    clearPlayerCombatStatus(); 
+                }
                 
-                runState.currentFloor++;
+                runState.currentLevel++;
                 updatePathDisplay();
                 saveRunState(); // 保存进度
                 startNextEncounter();
             }
 
             function startPlayerTurn() {
-                setGameState(GAME_STATES.PROCESSING_LOGIC); // V1.14: 回合开始时锁定，防止抽卡时点击
+                setGameState(GAME_STATES.PROCESSING_LOGIC); 
                 runState.player.energy = runState.player.maxEnergy;
-                runState.player.block = 0; // 重置玩家格挡
+                
+                if (!runState.player.status.barricade) {
+                    runState.player.block = 0; 
+                }
                 
                 runState.selectedCardId = null;
                 
@@ -1563,32 +1902,31 @@
                     runState.enemy.nextMove = runState.enemy.moves[Math.floor(Math.random() * runState.enemy.moves.length)];
                 }
                 
-                updateAllUI(); // 先更新一次UI (显示敌人意图等)
+                updateAllUI(); 
                 
-                // V1.14: drawCards 现在有动画, 并在结束后设置玩家回合
                 drawCards(5, null, () => {
-                    setGameState(GAME_STATES.PLAYER_TURN); // <-- 轮到玩家，解锁输入
+                    setGameState(GAME_STATES.PLAYER_TURN); 
                 }); 
             }
 
             function endPlayerTurn() {
                 if (runState.gameState !== GAME_STATES.PLAYER_TURN) return;
                 
-                setGameState(GAME_STATES.PROCESSING_LOGIC); // <-- 锁定游戏
-                saveRunState(); // 保存进度
+                setGameState(GAME_STATES.PROCESSING_LOGIC); 
+                saveRunState(); 
                 
                 runState.selectedCardId = null;
+                updateTargetHighlights(null); 
                 
                 runState.discard = [...runState.discard, ...runState.hand];
                 runState.hand = [];
                 
-                // 在玩家回合结束时结算玩家状态
                 tickDownStatus(runState.player);
                 
-                updateHandUI(); // 清空手牌UI
-                updateEntityUI(runState.player); // 更新UI以显示（可能）减少的状态
+                updateHandUI(); 
+                updateEntityUI(runState.player); 
                 
-                setTimeout(() => enemyTurn(), 500); // 0.5秒后敌人行动
+                setTimeout(() => enemyTurn(), 500); 
             }
             
             function enemyTurn() {
@@ -1596,37 +1934,38 @@
                 let onEndCallback = null; 
 
                 onEndCallback = () => {
-                    updateAllUI(); // 确保动画后的UI是最终状态
+                    updateAllUI(); 
                     
                     if (runState.player.hp <= 0) {
-                        gameOver(false); // 玩家死亡
+                        gameOver(false); 
                     } else {
-                        // 将状态结算和UI更新移到 setTimeout *内部*
                         setTimeout(() => {
                             if (enemy) {
-                                tickDownStatus(enemy); // 在此结算敌人状态
-                                updateEntityUI(enemy); // 更新敌人UI
+                                tickDownStatus(enemy); 
+                                updateEntityUI(enemy); 
                             }
-                            startPlayerTurn(); // 然后开始玩家回合
+                            startPlayerTurn(); 
                         }, 500); 
                     }
                 };
                 
                 if (enemy) {
-                    enemy.block = 0; // 在敌人行动 *之前* 清除他们上一回合的格挡
-                    updateEntityUI(enemy); // 立即更新UI
+                    if (!enemy.status.barricade) {
+                        enemy.block = 0; 
+                    }
+                    updateEntityUI(enemy); 
                 }
                 
-                if (enemy && enemy.hp > 0) { // 敌人必须活着才能行动
+                if (enemy && enemy.hp > 0) { 
                     if (enemy.onTurn) { 
                         enemy.onTurn(enemy, onEndCallback); 
                     } else if (enemy.nextMove) {
                         executeDefaultEnemyMove(enemy, onEndCallback); 
                     } else {
-                        onEndCallback(); // 敌人没动作 (e.g. 眩晕)
+                        onEndCallback(); 
                     }
                 } else {
-                    onEndCallback(); // 敌人已死
+                    onEndCallback(); 
                 }
             }
             
@@ -1653,29 +1992,29 @@
                         });
                         break;
                     case 'defend':
-                        addBlock(enemy, move.val); // addBlock 内部有动画
+                        addBlock(enemy, move.val); 
                         animationDone = true;
                         break;
                     case 'buff':
                     case 'debuff':
                     case 'pollute':
                         executeEnemyLogic(move, enemy, () => {
-                            animationDone = true; // 动画在逻辑内部处理
+                            animationDone = true; 
                             checkEnd();
                         });
-                        logicDone = true; // 逻辑和动画是一体的
-                        return; // 提前返回
+                        logicDone = true; 
+                        return; 
                     default:
                         animationDone = true;
                 }
                 
-                // 2. 执行逻辑 (在短暂延迟后, 模拟攻击命中)
+                // 2. 执行逻辑
                 setTimeout(() => {
                     executeEnemyLogic(move, enemy, () => {
                         logicDone = true;
                         checkEnd();
                     });
-                }, 250); // 攻击动画中点
+                }, 250); 
             }
             
             function executeEnemyLogic(move, enemy, onLogicEnd = () => {}) {
@@ -1685,7 +2024,6 @@
                         onLogicEnd();
                         break;
                     case 'defend':
-                        // addBlock 已经在 move 执行时调用了
                         onLogicEnd();
                         break;
                     case 'buff':
@@ -1704,11 +2042,10 @@
 
             // --- 卡牌逻辑 ---
             
-            // V1.14: 重构抽卡动画
             function drawCards(amount, sourceCard = null, onAllCardsDrawn = () => {}) {
                 let handRect = D.game.handArea.getBoundingClientRect();
                 let deckRect = D.game.deckCount.getBoundingClientRect();
-                let drawnCardsData = []; // 存储卡牌数据
+                let drawnCardsData = []; 
                 
                 for (let i = 0; i < amount; i++) {
                     if (runState.deck.length === 0) {
@@ -1722,43 +2059,40 @@
                     drawnCardsData.push(card);
                 }
                 
-                updateDeckDiscardUI(); // 更新牌堆数量
+                updateDeckDiscardUI(); 
 
                 if (drawnCardsData.length === 0) {
                     onAllCardsDrawn();
                     return;
                 }
 
-                // V1.14: 播放动画
                 drawnCardsData.forEach((card, index) => {
                     const cardEl = createCardElement(card, card.instanceId);
-                    cardEl.classList.add('drawing'); // 初始状态 (透明, 在牌堆)
+                    cardEl.classList.add('drawing'); 
                     
-                    const startX = (deckRect.left + deckRect.width / 2) - (handRect.left + handRect.width / 2);
+                    const startX = (deckRect.left + deckRect.width / 2) - (handRect.left + 40); 
                     const startY = (deckRect.top + deckRect.height / 2) - (handRect.top + handRect.height / 2);
                     cardEl.style.transform = `translate(${startX}px, ${startY}px) scale(0.5)`;
                     
-                    D.game.handArea.appendChild(cardEl); // V1.14: 直接添加到 handArea
+                    D.game.handArea.appendChild(cardEl); 
 
-                    // 延迟播放
                     setTimeout(() => {
-                        cardEl.classList.remove('drawing'); // 移除初始状态
-                        cardEl.style.transform = ``; // V1.14: 清除 transform, 让 CSS flexbox 接管
+                        cardEl.classList.remove('drawing');
+                        cardEl.style.transform = ``;
                         cardEl.style.position = 'relative'; 
                         
-                        // 动画结束后，重新布局
-                        if (index === drawnCardsData.length - 1) { // 仅最后一张卡
+                        if (index === drawnCardsData.length - 1) { 
                             setTimeout(() => {
-                                updateHandUI(); // V1.14: 重新渲染所有卡牌以获得正确的 flex 布局
-                                onAllCardsDrawn(); // V1.14: 调用回调
-                            }, 400); // 动画时长
+                                updateHandUI(); 
+                                onAllCardsDrawn();
+                            }, 400); 
                         }
-                    }, (sourceCard ? 0 : index * 100) + 50); // 如果是卡牌效果抽卡，则立即播放
+                    }, (sourceCard ? 0 : index * 100) + 50); 
                 });
             }
             
             function addCardToDiscard(cardDef, amount, source = null, onEndCallback = () => {}) {
-                const targetEl = D.game.discardCount.parentElement; // 弃牌堆的DOM
+                const targetEl = D.game.discardCount.parentElement; 
                 const sourceEl = source?.dom?.container || D.game.enemyArea;
                 
                 for(let i = 0; i < amount; i++) {
@@ -1770,41 +2104,28 @@
                 }
             }
             
+            function addCardToDeck(cardDef) {
+                if (!cardDef) return;
+                runState.deck.push(createCardInstance(cardDef));
+                updateDeckDiscardUI();
+            }
+            
             function onCardClick(cardInstanceId) {
                 if (runState.gameState !== GAME_STATES.PLAYER_TURN) return;
                 
                 const card = runState.hand.find(c => c.instanceId === cardInstanceId);
-                if (!card || runState.player.energy < card.cost) return;
-                if (card.type === 'curse') return;
+                if (!card || card.type === 'curse') return; 
+                
+                if (runState.player.energy < card.cost) return; 
 
-                if (card.target === 'self') {
-                    playCard(card, runState.player);
-                    return;
-                }
-                
-                if (card.target === 'enemy') { 
-                    if (runState.selectedCardId === cardInstanceId) {
-                        runState.selectedCardId = null;
-                        updateHandUI();
-                        updateTargetHighlights(null);
-                    } else {
-                        runState.selectedCardId = cardInstanceId;
-                        updateHandUI();
-                        updateTargetHighlights('enemy_skill');
-                    }
-                     return;
-                }
-                
-                if (card.type === 'attack') {
-                    if (runState.selectedCardId === cardInstanceId) {
-                        runState.selectedCardId = null;
-                        updateHandUI();
-                        updateTargetHighlights(null);
-                    } else {
-                        runState.selectedCardId = cardInstanceId;
-                        updateHandUI();
-                        updateTargetHighlights(card.type);
-                    }
+                if (runState.selectedCardId === cardInstanceId) {
+                    runState.selectedCardId = null;
+                    updateHandUI();
+                    updateTargetHighlights(null);
+                } else {
+                    runState.selectedCardId = cardInstanceId;
+                    updateHandUI();
+                    updateTargetHighlights(card); 
                 }
             }
             
@@ -1812,11 +2133,9 @@
                 if (runState.gameState !== GAME_STATES.PLAYER_TURN || !runState.selectedCardId) {
                     return;
                 }
-                
                 const card = runState.hand.find(c => c.instanceId === runState.selectedCardId);
                 if (!card) return;
-                
-                if (card.type === 'attack' || card.target === 'enemy') {
+                if (card.target === 'enemy') {
                     playCard(card, enemy);
                 }
             }
@@ -1825,12 +2144,17 @@
                  if (runState.gameState !== GAME_STATES.PLAYER_TURN || !runState.selectedCardId) {
                     return;
                 }
+                const card = runState.hand.find(c => c.instanceId === runState.selectedCardId);
+                if (!card) return;
+                if (card.target === 'self') {
+                    playCard(card, runState.player);
+                }
             }
 
             function playCard(card, target) {
                 if (runState.gameState !== GAME_STATES.PLAYER_TURN) return;
                 
-                setGameState(GAME_STATES.PROCESSING_LOGIC); // <-- 锁定游戏
+                setGameState(GAME_STATES.PROCESSING_LOGIC); 
                 
                 runState.player.energy -= card.cost;
                 runState.hand = runState.hand.filter(c => c.instanceId !== card.instanceId);
@@ -1843,19 +2167,19 @@
                 
                 runState.selectedCardId = null;
                 updateTargetHighlights(null);
-                updateHandUI(); // 立即从手中移除卡牌
+                updateHandUI(); 
 
                 card.effect(runState.player, target, card);
                 
-                // V1.14: 动画时间计算
-                let animationTime = 200; // 默认
+                let animationTime = 200; 
                 if (card.type === 'attack') animationTime = 500;
                 if (card.id.includes('double_hit')) animationTime = 700;
-                if (card.id.includes('bulwark') && runState.player.block > 0) animationTime = 700; // 攻击+抽卡
-                if (card.id.includes('battle_focus')) animationTime = 1000; // 抽卡
+                if (card.id.includes('bulwark') && runState.player.block > 0) animationTime = 700; 
+                if (card.id.includes('battle_focus')) animationTime = 1000; 
+                if (card.id.includes('adrenaline')) animationTime = 1000; 
                 
                 setTimeout(() => {
-                    updateAllUI(); // 更新UI以显示能量变化和卡牌效果
+                    updateAllUI(); 
                     
                     if (runState.enemy.hp <= 0) {
                         setGameState(GAME_STATES.COMBAT_OVER);
@@ -1863,51 +2187,92 @@
                     } else if (runState.player.hp <= 0) {
                         gameOver(false);
                     } else {
-                        updateHandUI(); // 刷新能量高亮
-                        setGameState(GAME_STATES.PLAYER_TURN); // 战斗继续
+                        updateHandUI(); 
+                        setGameState(GAME_STATES.PLAYER_TURN); 
                     }
                 }, animationTime); 
             }
             
             function enemyKilled() {
-                clearPlayerCombatStatus(); 
+                const isBoss = runState.enemy.isBoss || false;
+                const rewardType = isBoss ? CARD_RARITY.RARE : CARD_RARITY.COMMON;
+                runState.isBossDefeated = isBoss;
                 
                 const currencyGained = Math.floor(runState.enemy.currency * (1 + runState.player.greedBonus));
                 runState.runCurrency += currencyGained;
-                setTimeout(() => showRewardScreen(currencyGained), 1000); 
+                
+                setTimeout(() => showRewardScreen(currencyGained, rewardType), 1000); 
             }
             
-            function showRewardScreen(currencyGained) {
+            function showRewardScreen(currencyGained, rewardType) {
                 D.rewards.currency.textContent = `${currencyGained} 🔥`;
-                generateRewardOptions();
+                if (runState.isBossDefeated) {
+                    D.rewards.title.textContent = 'Boss 已击败！';
+                } else {
+                    D.rewards.title.textContent = '战斗胜利！';
+                }
+                generateRewardOptions(rewardType);
                 setGameState(GAME_STATES.REWARD);
             }
             
-            function generateRewardOptions() {
+            function getCardPool(rarity) {
+                return Object.values(cardDefinitions).filter(c => c.rarity === rarity);
+            }
+            
+            function getRandomCard(rarity) {
+                const pool = getCardPool(rarity);
+                if (pool.length === 0) return null;
+                return pool[Math.floor(Math.random() * pool.length)];
+            }
+            
+            function generateRewardOptions(rewardType) {
                 const optionsContainer = D.rewards.options;
                 optionsContainer.innerHTML = '';
+                runState.selectedRewardCardId = null; 
                 
-                const cardPool = [
-                    'heavy_strike', 'double_hit', 'iron_wall', 'quick_slash', 
-                    'vampiric_touch', 'battle_focus',
-                    'break', 'demoralize', 'bulwark', 'energy_burst' 
-                ];
-                const options = shuffle(cardPool).slice(0, 3); 
+                const commonPool = getCardPool(CARD_RARITY.COMMON);
+                let options = [];
                 
-                options.forEach(cardId => {
-                    const cardDef = cardDefinitions[cardId];
+                if (rewardType === CARD_RARITY.RARE) {
+                    const rarePool = getCardPool(CARD_RARITY.RARE);
+                    if (rarePool.length > 0) {
+                        options.push(rarePool[Math.floor(Math.random() * rarePool.length)]);
+                    }
+                    options = options.concat(shuffle(commonPool).slice(0, 2));
+                } else {
+                    options = shuffle(commonPool).slice(0, 3);
+                }
+                
+                shuffle(options).forEach(cardDef => {
+                    if (!cardDef) return;
                     const cardEl = createCardElement(cardDef);
                     cardEl.classList.add('reward-card'); 
-                    cardEl.addEventListener('click', () => selectReward(cardDef));
+                    cardEl.addEventListener('click', () => onRewardCardClick(cardDef, cardEl)); 
                     optionsContainer.appendChild(cardEl);
                 });
             }
             
+            function onRewardCardClick(cardDef, cardEl) {
+                $$('.reward-card.selected-reward').forEach(el => el.classList.remove('selected-reward'));
+                
+                cardEl.classList.add('selected-reward');
+                runState.selectedRewardCardId = cardDef.id;
+                
+                D.rewards.confirmBtn.classList.remove('hidden');
+            }
+
             function selectReward(cardDef) {
-                if (cardDef) { 
-                    runState.deck.push(createCardInstance(cardDef)); 
+                addCardToDeck(cardDef); 
+                
+                runState.selectedRewardCardId = null;
+                D.rewards.confirmBtn.classList.add('hidden');
+                $$('.reward-card.selected-reward').forEach(el => el.classList.remove('selected-reward'));
+
+                if (runState.isBossDefeated) {
+                    startNewFloor();
+                } else {
+                    proceedToNextLevel();
                 }
-                proceedToNextFloor();
             }
             
             // --- 战斗数值 ---
@@ -1922,26 +2287,27 @@
                     case 'vulnerable': iconHTML = '🟠'; break;
                     case 'weak': iconHTML = '🔘'; break;
                     case 'strength': iconHTML = '🔴'; break;
+                    case 'barricade': iconHTML = '🔵'; break;
                 }
                 
                 createAndFireProjectile(sourceEl, targetEl, iconHTML, () => {
                     if (status === 'strength') {
                         target.status.strength = (target.status.strength || 0) + duration;
+                    } else if (status === 'barricade') {
+                        target.status.barricade = 1; 
                     } else {
                         target.status[status] = (target.status[status] || 0) + duration;
                     }
                     updateEntityUI(target);
-                    onEndCallback();
+                    if (onEndCallback) onEndCallback();
                 });
             }
 
             function tickDownStatus(target) {
                 if (target.status.vulnerable > 0) target.status.vulnerable--;
                 if (target.status.weak > 0) target.status.weak--;
-                // Strength (力量) 不会衰减
             }
             
-            // V1.14: 增加 delay
             function dealDamage(target, amount, source, delay = 0) {
                 setTimeout(() => {
                     let modifiedAmount = amount;
@@ -2010,7 +2376,7 @@
             function gameOver(isWin) {
                 if (runState.gameState === GAME_STATES.GAME_OVER) return; 
                 
-                localStorage.removeItem(RUN_KEY); // 清除存档
+                localStorage.removeItem(RUN_KEY); 
                 
                 playerProfile.totalCurrency += runState.runCurrency;
                 if (runState.currentFloor > playerProfile.highScore) {
@@ -2040,11 +2406,11 @@
                 updateEntityUI(runState.player);
                 D.game.playerEnergyText.textContent = `${runState.player.energy}/${runState.player.maxEnergy}`;
                 
-                if (runState.enemy) {
+                if (runState.enemy && runState.enemy.hp > 0) {
                     updateEntityUI(runState.enemy);
                     const e = runState.enemy;
                     e.dom.sprite.textContent = e.sprite;
-                    if (e.hp > 0 && e.nextMove) {
+                    if (e.nextMove) {
                         e.dom.intent.innerHTML = `<span>${e.nextMove.intent}</span>`;
                         e.dom.intent.dataset.intentKey = e.nextMove.intentKey;
                         e.dom.intent.dataset.intentVal = e.nextMove.val || 0;
@@ -2053,6 +2419,10 @@
                     } else {
                         e.dom.intent.classList.add('hidden');
                     }
+                } else if (runState.enemy) {
+                    const e = runState.enemy;
+                    e.dom.sprite.textContent = e.sprite;
+                    e.dom.intent.classList.add('hidden');
                 }
                 
                 updateDeckDiscardUI();
@@ -2106,13 +2476,15 @@
 
                             let durationText = duration;
                             if (statusId === 'strength') {
-                                durationText = `+${duration}`; // 力量显示层数
+                                durationText = `+${duration}`; 
+                            } else if (statusId === 'barricade') {
+                                durationText = ``; 
                             }
 
                             const iconEl = document.createElement('div');
                             iconEl.className = `status-icon status-${def.color}`; 
-                            iconEl.innerHTML = `<span>${durationText}</span>`; 
-                            iconEl.dataset.statusId = statusId; // 用于 tooltip
+                            iconEl.innerHTML = `<span>${statusId === 'barricade' ? def.icon : durationText}</span>`; 
+                            iconEl.dataset.statusId = statusId; 
                             
                             statusIconContainer.appendChild(iconEl);
                         }
@@ -2120,19 +2492,15 @@
                 }
             }
             
-            // V1.14: 重构手牌UI
             function updateHandUI() {
                 const hand = runState.hand;
                 const handArea = D.game.handArea;
                 
-                // 1. 清空 (V1.14: 简单粗暴, 保证清空动画残留)
                 handArea.innerHTML = ''; 
                 
-                // 2. 重新渲染
-                hand.forEach((card, index) => {
+                hand.forEach((card) => {
                     const cardEl = createCardElement(card, card.instanceId);
                     
-                    // 更新高亮
                     const isPlayable = runState.player.energy >= card.cost;
                     if (isPlayable) cardEl.classList.add('playable');
                     else cardEl.classList.add('unplayable');
@@ -2145,6 +2513,18 @@
                 });
             }
             
+            function formatDescription(desc) {
+                if (!desc) return '';
+                return desc
+                    .replace(/<k>易伤<\/k>/g, '<span class="keyword" data-keyword="vulnerable">易伤</span>')
+                    .replace(/<k>虚弱<\/k>/g, '<span class="keyword" data-keyword="weak">虚弱</span>')
+                    .replace(/<k>消耗<\/k>/g, '<span class="keyword" data-keyword="exhaust">消耗</span>')
+                    .replace(/<k>诅咒<\/k>/g, '<span class="keyword" data-keyword="curse">诅咒</span>')
+                    .replace(/<k>格挡<\/k>/g, '<span class="keyword" data-keyword="barricade">格挡</span>') 
+                    .replace(/<strong>易伤<\/strong>/g, '<span class="keyword" data-keyword="vulnerable"><strong>易伤</strong></span>')
+                    .replace(/<strong>虚弱<\/strong>/g, '<span class="keyword" data-keyword="weak"><strong>虚弱</strong></span>');
+            }
+            
             function createCardElement(cardDef, instanceId = null) {
                 const el = document.createElement('div');
                 el.className = 'card';
@@ -2153,6 +2533,9 @@
                     el.id = `hand-card-${instanceId}`; 
                     el.dataset.instanceId = instanceId;
                 }
+                
+                el.classList.add(`rarity-${cardDef.rarity || 'common'}`);
+                
                 if(cardDef.upgraded) el.classList.add('upgraded');
                 if(cardDef.exhaust) el.classList.add('exhaust');
                 if(cardDef.type === 'curse') el.classList.add('curse');
@@ -2169,17 +2552,19 @@
                 if (cardDef.exhaust) descHTML += " (<k>消耗</k>)";
                 if (cardDef.type === 'curse') descHTML += " (<k>诅咒</k>)";
                 
-                descHTML = descHTML.replace(/<k>易伤<\/k>/g, '<span class="keyword" data-keyword="vulnerable">易伤</span>');
-                descHTML = descHTML.replace(/<k>虚弱<\/k>/g, '<span class="keyword" data-keyword="weak">虚弱</span>');
-                descHTML = descHTML.replace(/<k>消耗<\/k>/g, '<span class="keyword" data-keyword="exhaust">消耗</span>');
-                descHTML = descHTML.replace(/<k>诅咒<\/k>/g, '<span class="keyword" data-keyword="curse">诅咒</span>');
+                descHTML = formatDescription(descHTML);
+                
+                let nameClass = `card-name ${cardDef.upgraded ? 'upgraded' : ''}`;
+                if (cardDef.rarity === CARD_RARITY.RARE && !cardDef.upgraded) {
+                    nameClass += ' rarity-rare'; 
+                }
                 
                 el.innerHTML = `
                     <div class="flex justify-between items-start">
                         <div class="card-cost">${cardDef.cost}</div>
                         <div class="text-xs ${typeColor}">${typeText}</div>
                     </div>
-                    <div class="card-name ${cardDef.upgraded ? 'upgraded' : ''}">${cardDef.name}</div>
+                    <div class="${nameClass}">${cardDef.name}</div>
                     <div class="card-desc">${descHTML}</div>
                 `;
                 return el;
@@ -2192,22 +2577,44 @@
             
             function updatePathDisplay() {
                 D.game.pathDisplay.innerHTML = '';
-                pathDefinition.forEach((node, index) => {
+                const { floorPath, currentLevel } = runState;
+                
+                floorPath.forEach((nodeType, index) => {
                     const nodeEl = document.createElement('div');
                     nodeEl.className = 'path-node';
-                    if (index < runState.currentFloor) nodeEl.classList.add('cleared');
-                    else if (index === runState.currentFloor) nodeEl.classList.add('current');
-                    nodeEl.textContent = node.sprite;
+                    let sprite = '';
+                    
+                    if (index < currentLevel) {
+                        nodeEl.classList.add('cleared');
+                        sprite = NODE_SPRITES[nodeType];
+                    } else if (index === currentLevel) {
+                        nodeEl.classList.add('current');
+                        sprite = NODE_SPRITES[nodeType];
+                    } else {
+                        // 未探索
+                        if (index === floorPath.length - 1) {
+                            // Boss 节点
+                            nodeEl.classList.add('boss');
+                            sprite = NODE_SPRITES[NODE_TYPE.BOSS];
+                        } else {
+                            // 迷雾
+                            sprite = NODE_SPRITES.FOG;
+                        }
+                    }
+                    
+                    nodeEl.textContent = sprite;
                     D.game.pathDisplay.appendChild(nodeEl);
                 });
             }
             
-            function updateTargetHighlights(cardType) {
+            function updateTargetHighlights(card) {
                 $$('.targeted').forEach(el => el.classList.remove('targeted'));
                 
-                if (cardType === 'attack' || cardType === 'enemy_skill') {
+                if (!card) return; 
+                
+                if (card.target === 'enemy') {
                     if (runState.enemy) runState.enemy.dom.container.classList.add('targeted');
-                } else if (cardType === 'skill') { 
+                } else if (card.target === 'self') { 
                     D.game.playerContainer.classList.add('targeted');
                 }
             }
@@ -2246,11 +2653,9 @@
                 const endRect = targetEl.getBoundingClientRect();
                 const gameRect = D.gameContainer.getBoundingClientRect();
                 
-                // 起点 (相对于 game-container)
                 const startX = (startRect.left + startRect.width / 2) - gameRect.left;
                 const startY = (startRect.top + startRect.height / 2) - gameRect.top;
                 
-                // 终点 (相对于 game-container)
                 const endX = (endRect.left + endRect.width / 2) - gameRect.left;
                 const endY = (endRect.top + endRect.height / 2) - gameRect.top;
                 
@@ -2272,100 +2677,99 @@
 
             // --- 工具函数 ---
             function shuffle(array) {
-                for (let i = array.length - 1; i > 0; i--) {
+                let newArr = [...array];
+                for (let i = newArr.length - 1; i > 0; i--) {
                     const j = Math.floor(Math.random() * (i + 1));
-                    [array[i], array[j]] = [array[j], array[i]];
+                    [newArr[i], newArr[j]] = [newArr[j], newArr[i]];
                 }
-                return array;
+                return newArr;
             }
 
             // --- 事件绑定 ---
 
             function initTooltipListeners() {
                 const tooltip = D.tooltip.el;
-                let currentTarget = null; 
+                let currentTooltipTarget = null; 
 
-                function showTooltip(e) {
-                    if (!currentTarget) return;
+                function showTooltip(target) {
+                    if (!target) return;
                     
                     let title = '';
                     let desc = '';
-                    let targetRect = currentTarget.getBoundingClientRect();
+                    currentTooltipTarget = target; 
 
                     // 1. 检查是什么类型的目标
-                    if (currentTarget.dataset.statusId) {
-                        // --- 状态图标 ---
-                        const statusId = currentTarget.dataset.statusId;
+                    if (target.dataset.statusId) {
+                        const statusId = target.dataset.statusId;
                         const def = statusDefinitions[statusId];
                         if (!def) return;
                         
-                        const isPlayer = currentTarget.closest('#player-status-area');
+                        const isPlayer = target.closest('#player-status-area');
                         const entity = isPlayer ? runState.player : runState.enemy;
                         const duration = entity.status[statusId];
                         
                         title = `${def.name} ${def.icon}`;
-                        if (statusId !== 'strength') {
-                            title += ` (剩余 ${duration} 回合)`;
-                        } else {
+                        if (statusId === 'strength') {
                             title += ` (${duration} 层)`;
+                        } else if (statusId !== 'barricade') {
+                            title += ` (剩余 ${duration} 回合)`;
                         }
                         desc = def.desc;
                         
-                    } else if (currentTarget.dataset.intentKey) {
-                        // --- 敌人意图 ---
-                        const key = currentTarget.dataset.intentKey;
-                        const val = currentTarget.dataset.intentVal;
-                        const count = currentTarget.dataset.intentCount;
+                    } else if (target.dataset.intentKey) {
+                        const key = target.dataset.intentKey;
+                        const val = target.dataset.intentVal;
+                        const count = target.dataset.intentCount;
                         const def = intentDefinitions[key];
                         if (!def) return;
                         
                         title = def.name;
-                        desc = def.desc(val, count); // 传递参数
+                        desc = def.desc(val, count); 
                         
-                    } else if (currentTarget.dataset.keyword) {
-                         // --- 卡牌关键字 ---
-                        const key = currentTarget.dataset.keyword;
-                        const def = statusDefinitions[key]; // 复用 statusDefinitions
+                    } else if (target.dataset.keyword) {
+                        const key = target.dataset.keyword;
+                        let def = statusDefinitions[key]; 
+                        if (key === 'barricade' && target.closest('.card-desc')) {
+                            def = statusDefinitions['barricade'];
+                        }
                         if (!def) return;
                         
                         title = `${def.name} ${def.icon || ''}`;
                         desc = def.desc;
                     } else {
-                        return; // 不是有效目标
+                        return; 
                     }
 
                     // 2. 填充内容
                     D.tooltip.title.innerHTML = title;
-                    D.tooltip.desc.innerHTML = desc;
+                    D.tooltip.desc.innerHTML = formatDescription(desc);
                     
                     tooltip.classList.add('visible'); 
 
-                    // 3. 安全定位 (屏幕边缘检测)
+                    // 3. 安全定位
                     const gameRect = D.gameContainer.getBoundingClientRect();
                     const ttRect = tooltip.getBoundingClientRect(); 
+                    const targetRect = target.getBoundingClientRect();
                     
                     const targetTop = targetRect.top - gameRect.top;
                     const targetLeft = targetRect.left - gameRect.left;
                     
-                    let ttLeft = targetLeft + (targetRect.width / 2); // 默认居中
-                    let ttTop = targetTop - 8; // 默认在上方
-                    let transform = 'translate(-50%, -100%)'; // 默认向上
+                    let ttLeft = targetLeft + (targetRect.width / 2); 
+                    let ttTop = targetTop - 8; 
+                    let transform = 'translate(-50%, -100%)'; 
                     
-                    // 检查上方
-                    if ((targetRect.top - ttRect.height) < gameRect.top) {
-                        ttTop = targetTop + targetRect.height + 8; // 移到下方
+                    if ((targetRect.top - ttRect.height - 10) < gameRect.top) {
+                        ttTop = targetTop + targetRect.height + 8; 
                         transform = 'translate(-50%, 0)';
                     }
                     
-                    // 检查左侧
-                    if ((targetRect.left - (ttRect.width / 2)) < gameRect.left) {
-                        ttLeft = 5; // 5px 边距
+                    if ((targetLeft + (targetRect.width / 2) - (ttRect.width / 2)) < gameRect.left) {
+                        ttLeft = 5; 
                         transform = transform.replace('translate(-50%', 'translate(0%');
                     }
                     
-                    // 检查右侧
-                    if ((targetRect.left + (ttRect.width / 2)) > gameRect.right) {
-                        ttLeft = gameRect.width - 5; // 5px 边距
+                    if ((targetLeft + (targetRect.width / 2) + (ttRect.width / 2)) > (gameRect.left + gameRect.width)) {
+                        ttLeft = gameRect.width - 5; 
                         transform = transform.replace('translate(-50%', 'translate(-100%');
                     }
 
@@ -2376,26 +2780,28 @@
 
                 function hideTooltip() {
                     tooltip.classList.remove('visible'); 
-                    currentTarget = null;
+                    currentTooltipTarget = null;
                 }
-
-                function handlePressStart(e) {
-                    const target = e.target.closest('.status-icon, [data-intent-key], .keyword');
-                    if (target) {
-                        e.preventDefault(); 
-                        currentTarget = target; // 存储目标
-                        showTooltip(); // 立即显示
-                    }
-                }
-
-                const gameScreen = D.screens.game;
                 
-                gameScreen.addEventListener('mousedown', handlePressStart);
-                gameScreen.addEventListener('touchstart', handlePressStart, { passive: false });
-
-                window.addEventListener('mouseup', hideTooltip);
-                window.addEventListener('touchend', hideTooltip);
-                window.addEventListener('touchcancel', hideTooltip);
+                D.gameContainer.addEventListener('click', (e) => {
+                    const tooltipTarget = e.target.closest('.status-icon, [data-intent-key], .keyword');
+                    
+                    if (tooltipTarget) {
+                        e.stopPropagation(); 
+                        
+                        if (currentTooltipTarget === tooltipTarget) {
+                            hideTooltip();
+                        } else {
+                            showTooltip(tooltipTarget);
+                        }
+                        return; 
+                    }
+                    
+                    const cardTarget = e.target.closest('.hand-card, .enemy-container, .player-container, .btn-event');
+                    if (!cardTarget) {
+                        hideTooltip();
+                    }
+                });
             }
             
             D.mainMenu.continueBtn.addEventListener('click', () => loadRunState());
@@ -2423,21 +2829,26 @@
             });
             D.game.playerContainer.addEventListener('click', () => onPlayerClick());
             
-            // V1.14: 重构手牌点击
             D.game.handArea.addEventListener('click', (e) => {
                 const cardEl = e.target.closest('.hand-card');
-                if (cardEl && !e.target.closest('.keyword')) { // 确保没点中关键字
+                if (cardEl && !e.target.closest('.keyword')) { 
                     onCardClick(cardEl.dataset.instanceId);
                 }
             });
 
-
+            D.rewards.confirmBtn.addEventListener('click', () => {
+                if (runState.selectedRewardCardId) {
+                    selectReward(cardDefinitions[runState.selectedRewardCardId]);
+                }
+            });
             D.rewards.skipBtn.addEventListener('click', () => selectReward(null));
             D.rewards.rerollBtn.addEventListener('click', () => {
                 if (runState.player.rerollCharges > 0) {
                     runState.player.rerollCharges--;
-                    generateRewardOptions(); 
+                    const rewardType = runState.isBossDefeated ? CARD_RARITY.RARE : CARD_RARITY.COMMON;
+                    generateRewardOptions(rewardType); 
                     D.rewards.rerollBtn.textContent = `重抽 (${runState.player.rerollCharges})`;
+                    D.rewards.confirmBtn.classList.add('hidden'); 
                     if (runState.player.rerollCharges === 0) {
                         D.rewards.rerollBtn.disabled = true;
                         D.rewards.rerollBtn.classList.add('hidden');
@@ -2453,7 +2864,11 @@
                 setGameState(GAME_STATES.MAIN_MENU);
             });
             
-            D.smith.backBtn.addEventListener('click', () => setGameState(GAME_STATES.EVENT));
+            // V1.1: 锻造界面的 "离开" 按钮
+            D.smith.backBtn.addEventListener('click', () => {
+                D.screens.smith.classList.remove('active'); // 隐藏模态框
+                proceedToNextLevel(); // 离开事件
+            });
 
             // --- 游戏启动 ---
             function init() {
@@ -2461,9 +2876,9 @@
                 defineIntents(); 
                 defineCards();
                 defineEnemies();
-                definePath();
+                defineEvents(); 
                 defineUpgrades();
-                initTooltipListeners();
+                initTooltipListeners(); 
                 loadPlayerProfile();
                 
                 const savedRun = localStorage.getItem(RUN_KEY);
@@ -2472,7 +2887,7 @@
                     D.mainMenu.startBtn.textContent = '开始新探索'; 
                     D.mainMenu.startBtn.classList.replace('btn-primary', 'btn-secondary'); 
                     
-                    D.mainMenu.continueBtn.textContent = `继续探索 (第 ${loadedState.currentFloor + 1} 层)`;
+                    D.mainMenu.continueBtn.textContent = `继续探索 (第 ${loadedState.currentFloor} 层)`; 
                     D.mainMenu.continueBtn.classList.remove('hidden');
                 }
                 
@@ -2484,3 +2899,5 @@
     </script>
 </body>
 </html>
+
+
